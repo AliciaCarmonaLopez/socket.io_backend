@@ -6,13 +6,27 @@ interface AccessTokenPayload {
     userId: string,
 }
 
+interface AccessTokenPayload {
+    userId: string;
+    name: string;
+}
+
 export function generateAccessToken(user: IUser): string {
     const payload: AccessTokenPayload = {
         userId: user._id!,
+        name: user.name,
     };
     return jwt.sign(payload, JWT_ACCESS_KEY, { expiresIn: '15m' });
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {
     return jwt.verify(token, JWT_ACCESS_KEY) as AccessTokenPayload;
+}
+
+export function returnUserInfo(token: string): IUser {
+    const payload = verifyAccessToken(token); // Decodifica el token y obtiene el payload
+    return {
+        _id: payload.userId,
+        name: payload.name,
+    } as IUser; // Devuelve el objeto IUser
 }

@@ -11,7 +11,7 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 import http from 'http';
 import { Server } from 'socket.io';
-import { verifyAccessToken } from './modules/auth/jwt.js';
+import { returnUserInfo, verifyAccessToken } from './modules/auth/jwt.js';
 
 dotenv.config(); // Cargamos las variables de entorno desde el archivo .env
 
@@ -96,13 +96,15 @@ chatIO.on('connection', (socket) => {
         if (!token) return next(new Error('unauthorized'));
 
         try {
-            verifyAccessToken(token);
+            const payload = verifyAccessToken(token);
+            socket.data.user = payload.name;
+            console.log('Payload decodificado:', payload);
             return next();
         } catch (err) {
             return next(new Error('unauthorized'));
         }
     });
-
+    
     socket.on('error', (err) => {
         if (err && err.message == 'unauthorized') {
             console.debug('unauthorized user');
@@ -111,10 +113,14 @@ chatIO.on('connection', (socket) => {
         }
     });
 
+
+
     // Manejar evento para unirse a una sala
     socket.on('join_room', (roomId: string) => {
         socket.join(roomId);
         console.log(`Usuario con ID: ${socket.id} se unió a la sala: ${roomId}`);
+        console.log(`Usuario: ${socket.data.user}`);
+        socket.to(roomId).emit('status', { status: 'joined', user: socket.data.user });
     });
 
     // Manejar evento para enviar un mensaje
